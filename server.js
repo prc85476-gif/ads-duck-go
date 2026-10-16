@@ -206,7 +206,8 @@ const clientDist = path.join(__dirname, 'client/dist');
 const fs = require('fs');
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
-  app.get('*', (req, res, next) => {
+  // Express 5 / path-to-regexp v8 compatible fallback
+  app.use((req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(clientDist, 'index.html'));
   });
