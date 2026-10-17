@@ -28,13 +28,55 @@ import {
   Check,
   ArrowDownLeft,
   ArrowUpRight,
-  Plane
+  Plane,
+  Video,
+  Tv,
+  Film,
+  PlayCircle,
+  Clapperboard,
+  MonitorPlay,
+  Zap,
+  Flame,
+  Star,
+  Trophy
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const API_BASE = window.location.hostname === 'localhost' && window.location.port === '5173'
   ? 'http://localhost:5000/api'
   : '/api';
+
+function getRandomTaskReward() {
+  const min = 0.002;
+  const max = 0.005;
+  return Number((Math.random() * (max - min) + min).toFixed(3));
+}
+
+function generateInitialTasks() {
+  const baseTasks = [
+    { id: 1, name: "AdGem", color: "#8b5cf6", icon: "video" },
+    { id: 2, name: "BitLabs", color: "#3b82f6", icon: "monitor" },
+    { id: 3, name: "Tapjoy", color: "#ef4444", icon: "flame" },
+    { id: 4, name: "AdColony", color: "#1e293b", icon: "film" },
+    { id: 5, name: "Fyber", color: "#10b981", icon: "zap" },
+    { id: 6, name: "InMobi", color: "#0284c7", icon: "play" },
+    { id: 7, name: "ironSource", color: "#0f172a", icon: "tv" },
+    { id: 8, name: "Chartboost", color: "#16a34a", icon: "trophy" },
+    { id: 9, name: "Vungle", color: "#9333ea", icon: "clapper" },
+    { id: 10, name: "Unity Ads", color: "#09090b", icon: "star" }
+  ];
+
+  return baseTasks.map((t, idx) => ({
+    id: t.id,
+    name: t.name,
+    reward: idx < 2 ? 0.01 : getRandomTaskReward(),
+    completed: false,
+    tag: "Available",
+    logo: t.name,
+    color: t.color,
+    icon: t.icon
+  }));
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'tasks' | 'wallet' | 'profile'
@@ -54,29 +96,21 @@ export default function App() {
     pendingRequests: 1,
     tasksCompleted: 0,
     gamesPlayed: 2,
+    planePlaysToday: 0,
+    planePlaysWindowStart: Date.now(),
     dailyClaimedToday: false,
-    referralsCount: 8,
-    referralEarnings: 0.08,
-    referralCode: "RAKIB789",
-    botUsername: "AdEarn_Income_Bot",
+    lastDailyClaim: null,
+    referralsCount: 0,
+    referralEarnings: 0.00,
+    referralCode: "123456789",
+    botUsername: "adsduckgobot",
     perReferralBonus: 0.01,
     photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
     recentActivity: [
-      { id: '1', title: 'Task Reward', desc: 'You earned $0.05', time: '2h ago', type: 'task' },
+      { id: '1', title: 'Task Reward', desc: 'You earned $0.01', time: '2h ago', type: 'task' },
       { id: '2', title: 'Game Reward', desc: 'Lucky Spin bonus', time: '5h ago', type: 'game' }
     ],
-    tasks: [
-      { id: 1, name: "AdGem", reward: 0.02, completed: false, tag: "Available", logo: "AdGem", color: "#8b5cf6" },
-      { id: 2, name: "BitLabs", reward: 0.03, completed: false, tag: "Available", logo: "BitLabs", color: "#3b82f6" },
-      { id: 3, name: "Tapjoy", reward: 0.02, completed: false, tag: "Available", logo: "Tapjoy", color: "#ef4444" },
-      { id: 4, name: "AdColony", reward: 0.04, completed: false, tag: "Available", logo: "AdColony", color: "#1e293b" },
-      { id: 5, name: "Fyber", reward: 0.03, completed: false, tag: "Available", logo: "Fyber", color: "#10b981" },
-      { id: 6, name: "InMobi", reward: 0.02, completed: false, tag: "Available", logo: "InMobi", color: "#0284c7" },
-      { id: 7, name: "ironSource", reward: 0.03, completed: false, tag: "Available", logo: "ironSource", color: "#0f172a" },
-      { id: 8, name: "Chartboost", reward: 0.04, completed: false, tag: "Available", logo: "Chartboost", color: "#16a34a" },
-      { id: 9, name: "Vungle", reward: 0.02, completed: false, tag: "Available", logo: "Vungle", color: "#9333ea" },
-      { id: 10, name: "Unity Ads", reward: 0.03, completed: false, tag: "Available", logo: "Unity Ads", color: "#09090b" }
-    ],
+    tasks: generateInitialTasks(),
     withdrawals: [
       { id: 'w1', method: 'USDT (TRC20)', amount: 5.00, status: 'Completed', date: '2026-10-15' },
       { id: 'w2', method: 'Binance Pay', amount: 3.00, status: 'Completed', date: '2026-10-12' },
@@ -84,7 +118,7 @@ export default function App() {
     ]
   });
 
-  // Modals
+  // Modals & Timers
   const [adModal, setAdModal] = useState({ open: false, task: null, countdown: 5 });
   const [withdrawModal, setWithdrawModal] = useState({ open: false, method: 'USDT (TRC20)', min: 5.00 });
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -94,31 +128,147 @@ export default function App() {
   const [referralCopied, setReferralCopied] = useState(false);
   const [planeGameOpen, setPlaneGameOpen] = useState(false);
 
+  // Live Real-Time Timers (Updates every second)
+  const [planeTimeRemaining, setPlaneTimeRemaining] = useState('');
+  const [dailyTimeRemaining, setDailyTimeRemaining] = useState('');
+  const [adCooldownRemaining, setAdCooldownRemaining] = useState(0); // 10s anti-spam cooldown
+  const [tasksResetTimeRemaining, setTasksResetTimeRemaining] = useState('');
+
+  // 1-second interval to update remaining countdowns
+  useEffect(() => {
+    const updateCountdowns = () => {
+      const now = Date.now();
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+      const TWENTY_HOURS = 20 * 60 * 60 * 1000;
+
+      // Anti-spam Ad Cooldown (10 seconds between ads)
+      if (user.lastAdWatchedAt) {
+        const elapsedSinceAd = now - user.lastAdWatchedAt;
+        const cooldownDiff = 10000 - elapsedSinceAd;
+        if (cooldownDiff > 0) {
+          setAdCooldownRemaining(Math.ceil(cooldownDiff / 1000));
+        } else {
+          setAdCooldownRemaining(0);
+        }
+      } else {
+        setAdCooldownRemaining(0);
+      }
+
+      // 20-Hours Tasks Reset timer (when all 10 tasks completed)
+      if (user.allTasksCompletedAt) {
+        const elapsed = now - user.allTasksCompletedAt;
+        const diff = TWENTY_HOURS - elapsed;
+        if (diff > 0) {
+          const h = Math.floor(diff / 3600000);
+          const m = Math.floor((diff % 3600000) / 60000);
+          const s = Math.floor((diff % 60000) / 1000);
+          setTasksResetTimeRemaining(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        } else {
+          setTasksResetTimeRemaining('');
+          setUser(prev => ({
+            ...prev,
+            tasks: generateInitialTasks(),
+            tasksCompleted: 0,
+            allTasksCompletedAt: null
+          }));
+        }
+      } else {
+        setTasksResetTimeRemaining('');
+      }
+
+      // Plane Game timer (if 2/2 used)
+      if (user.planePlaysToday >= 2 && user.planePlaysWindowStart) {
+        const elapsed = now - user.planePlaysWindowStart;
+        const diff = TWENTY_FOUR_HOURS - elapsed;
+        if (diff > 0) {
+          const h = Math.floor(diff / 3600000);
+          const m = Math.floor((diff % 3600000) / 60000);
+          const s = Math.floor((diff % 60000) / 1000);
+          setPlaneTimeRemaining(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        } else {
+          setPlaneTimeRemaining('');
+          setUser(prev => ({ ...prev, planePlaysToday: 0, planePlaysWindowStart: now }));
+        }
+      } else {
+        setPlaneTimeRemaining('');
+      }
+
+      // Daily Claim timer (if claimed today)
+      if (user.dailyClaimedToday && user.lastDailyClaim) {
+        const elapsed = now - new Date(user.lastDailyClaim).getTime();
+        const diff = TWENTY_FOUR_HOURS - elapsed;
+        if (diff > 0) {
+          const h = Math.floor(diff / 3600000);
+          const m = Math.floor((diff % 3600000) / 60000);
+          const s = Math.floor((diff % 60000) / 1000);
+          setDailyTimeRemaining(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        } else {
+          setDailyTimeRemaining('');
+          setUser(prev => ({ ...prev, dailyClaimedToday: false }));
+        }
+      } else {
+        setDailyTimeRemaining('');
+      }
+    };
+
+    updateCountdowns();
+    const interval = setInterval(updateCountdowns, 1000);
+    return () => clearInterval(interval);
+  }, [user.planePlaysToday, user.planePlaysWindowStart, user.dailyClaimedToday, user.lastDailyClaim, user.lastAdWatchedAt, user.allTasksCompletedAt]);
+
+  // Open Airplane Game (with 2 plays/24h limit)
+  const handleOpenPlaneGame = () => {
+    if (user.planePlaysToday >= 2) {
+      showToast(`⏳ Limit reached: 2/2 plays used. Next play in ${planeTimeRemaining || 'a few hours'}`);
+      return;
+    }
+    setPlaneGameOpen(true);
+  };
+
   // Listen to messages from Airplane Game iframe
   useEffect(() => {
-    const handleGameMessage = (e) => {
+    const handleGameMessage = async (e) => {
       if (!e.data) return;
       if (e.data.type === 'AIRPLANE_GAME_EXIT') {
         setPlaneGameOpen(false);
       } else if (e.data.type === 'AIRPLANE_GAME_CLAIM') {
         const earned = e.data.earned || 0.03;
         setPlaneGameOpen(false);
-        setUser(prev => ({
-          ...prev,
-          balance: +(prev.balance + earned).toFixed(4),
-          totalEarned: +(prev.totalEarned + earned).toFixed(2),
-          gamesPlayed: prev.gamesPlayed + 1,
-          recentActivity: [
-            { 
-              id: Date.now().toString(), 
-              title: 'Airplane Crash Game', 
-              desc: `Won $${earned.toFixed(4)} (${e.data.usdt || 0} USDT, ${e.data.btc || 0} BTC)`, 
-              time: 'Just now', 
-              type: 'game' 
-            },
-            ...prev.recentActivity
-          ]
-        }));
+
+        try {
+          const res = await fetch(`${API_BASE}/airplane-claim`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id, earned, usdt: e.data.usdt, btc: e.data.btc })
+          });
+          const data = await res.json();
+          if (data.success) {
+            setUser(data.user);
+          } else {
+            throw new Error(data.message);
+          }
+        } catch {
+          // Offline fallback
+          setUser(prev => ({
+            ...prev,
+            planePlaysToday: (prev.planePlaysToday || 0) + 1,
+            planePlaysWindowStart: prev.planePlaysToday === 0 ? Date.now() : prev.planePlaysWindowStart,
+            balance: +(prev.balance + earned).toFixed(4),
+            totalEarned: +(prev.totalEarned + earned).toFixed(2),
+            gamesPlayed: prev.gamesPlayed + 1,
+            recentActivity: [
+              { 
+                id: Date.now().toString(), 
+                title: 'Airplane Crash Game', 
+                desc: `Won $${earned.toFixed(4)} (${e.data.usdt || 0} USDT, ${e.data.btc || 0} BTC)`, 
+                time: 'Just now', 
+                type: 'game' 
+              },
+              ...prev.recentActivity
+            ]
+          }));
+        }
+
         confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
         showToast(`🛩️ Game Rewards: +$${earned.toFixed(4)} credited to wallet!`);
       }
@@ -130,14 +280,16 @@ export default function App() {
   // Fetch initial user data from server if available
   useEffect(() => {
     // Detect Telegram WebApp
+    let currentUserId = "123456789";
     if (window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
       const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-      if (tgUser) {
+      if (tgUser && tgUser.id) {
+        currentUserId = tgUser.id.toString();
         setUser(prev => ({
           ...prev,
-          id: tgUser.id?.toString() || prev.id,
+          id: currentUserId,
           name: `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() || prev.name,
           username: tgUser.username || prev.username,
           photoUrl: tgUser.photo_url || prev.photoUrl
@@ -145,17 +297,21 @@ export default function App() {
       }
     }
 
-    fetch(`${API_BASE}/user/123456789`)
+    // Ping impression
+    fetch(`${API_BASE}/impression`, { method: 'POST' }).catch(() => {});
+
+    // Fetch user details from Neon DB
+    fetch(`${API_BASE}/user/${currentUserId}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
           setUser(prev => ({
             ...prev,
             ...data.data,
-            referralEarnings: data.data.referralEarnings ?? prev.referralEarnings ?? 0.08,
-            referralsCount: data.data.referralsCount ?? prev.referralsCount ?? 8,
-            referralCode: data.data.referralCode || prev.referralCode || "RAKIB789",
-            botUsername: data.data.botUsername || prev.botUsername || "AdEarn_Income_Bot"
+            referralEarnings: data.data.referralEarnings ?? 0,
+            referralsCount: data.data.referralsCount ?? 0,
+            referralCode: data.data.referralCode || currentUserId,
+            botUsername: "adsduckgobot"
           }));
         }
       })
@@ -204,6 +360,10 @@ export default function App() {
 
   // Watch Ad & Earn
   const startWatchingAd = (task) => {
+    if (adCooldownRemaining > 0) {
+      showToast(`⏳ Please wait ${adCooldownRemaining}s for next ad watching to prevent spam!`);
+      return;
+    }
     if (task.completed) {
       showToast("Task already completed today!");
       return;
@@ -241,14 +401,19 @@ export default function App() {
       // Local fallback
       setUser(prev => {
         const updatedTasks = prev.tasks.map(t => t.id === task.id ? { ...t, completed: true, tag: "Completed" } : t);
+        const remainingIncomplete = updatedTasks.filter(t => !t.completed);
+        const allCompletedNow = remainingIncomplete.length === 0;
+
         return {
           ...prev,
           tasks: updatedTasks,
           balance: +(prev.balance + task.reward).toFixed(4),
           totalEarned: +(prev.totalEarned + task.reward).toFixed(2),
           tasksCompleted: prev.tasksCompleted + 1,
+          lastAdWatchedAt: Date.now(),
+          allTasksCompletedAt: allCompletedNow ? Date.now() : prev.allTasksCompletedAt,
           recentActivity: [
-            { id: Date.now().toString(), title: `${task.name} Ad Reward`, desc: `You earned $${task.reward.toFixed(2)}`, time: 'Just now', type: 'task' },
+            { id: Date.now().toString(), title: `${task.name} Ad Reward`, desc: `You earned $${task.reward}`, time: 'Just now', type: 'task' },
             ...prev.recentActivity
           ]
         };
@@ -256,7 +421,7 @@ export default function App() {
     }
 
     confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
-    showToast(`💰 Successfully earned $${task.reward.toFixed(2)}!`);
+    showToast(`💰 Successfully earned $${task.reward}!`);
   };
 
   // Play Game Handler
@@ -520,74 +685,85 @@ export default function App() {
           </div>
 
           <div className="games-grid">
-            {/* Box 1: Airplane Crash (Matching Left Green/Teal Card with Border Glow & Watermark) */}
-            <div className="game-card lucky-spin" onClick={() => setPlaneGameOpen(true)}>
-              {/* Subtle Watermarked Coin Rings Graphic */}
-              <div style={{
-                position: 'absolute',
-                right: -6,
-                bottom: -8,
-                width: 60,
-                height: 60,
-                opacity: 0.18,
-                pointerEvents: 'none'
-              }}>
-                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                  <circle cx="36" cy="36" r="22" stroke="#10b981" strokeWidth="3" />
-                  <circle cx="20" cy="20" r="14" stroke="#10b981" strokeWidth="2" strokeDasharray="3 3" />
-                </svg>
-              </div>
-
+            {/* Box 1: Airplane Crash (2 plays per 24 hours) */}
+            <div className="game-card lucky-spin" onClick={handleOpenPlaneGame}>
               <div className="game-card-top-row">
                 <div>
                   <div className="game-title">Airplane</div>
-                  <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Crypto 1945</div>
+                  <div className="game-subtitle">Crypto 1945</div>
                 </div>
-                <div className="game-circle-glow-icon green">
-                  <Plane size={18} color="#fff" />
+                <div className="game-icon-box green">
+                  <Plane size={17} />
                 </div>
               </div>
 
-              <div className="game-bottom-pill-wrap">
+              <div className="game-bottom-pill-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span className="game-badge-pill green">
-                  Play & Earn
+                  {user.planePlaysToday >= 2 ? 'Limit Reached' : 'Play & Earn'}
+                </span>
+                <span className="box-timer-counter" style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: user.planePlaysToday >= 2 ? '#f87171' : '#86efac',
+                  background: 'rgba(0, 0, 0, 0.65)',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}>
+                  <Clock size={10} />
+                  {user.planePlaysToday >= 2 ? planeTimeRemaining : `${2 - (user.planePlaysToday || 0)}/2 left`}
                 </span>
               </div>
             </div>
 
-            {/* Box 2: Number Challenge (Matching Right Blue Card with Border Glow & Watermark) */}
-            <div className="game-card number-challenge" onClick={() => handlePlayGame('number')}>
-              {/* Subtle Watermarked Growth Graphic */}
+            {/* Box 2: Daily Challenge Bonus (1 claim per 24 hours, $0.01) */}
+            <div className="game-card number-challenge" onClick={handleClaimDaily}>
+              {/* Geometric pattern graphic */}
               <div style={{
                 position: 'absolute',
-                right: -4,
-                bottom: -6,
-                width: 60,
-                height: 60,
+                right: -10,
+                bottom: -10,
+                width: 75,
+                height: 75,
                 opacity: 0.18,
                 pointerEvents: 'none'
               }}>
-                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                  <rect x="20" y="32" width="6" height="24" rx="2" fill="#0284c7" />
-                  <rect x="30" y="24" width="6" height="32" rx="2" fill="#0284c7" />
-                  <rect x="40" y="14" width="6" height="42" rx="2" fill="#0284c7" />
-                  <path d="M12 40 L24 32 L34 24 L44 14 L56 6" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" />
+                <svg width="75" height="75" viewBox="0 0 75 75" fill="none">
+                  <circle cx="50" cy="50" r="32" stroke="#ffffff" strokeWidth="2.5" />
+                  <circle cx="50" cy="50" r="20" stroke="#ffffff" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <path d="M25 60 L40 40 L52 48 L65 30" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
 
               <div className="game-card-top-row">
                 <div>
-                  <div className="game-title">Challenge</div>
-                  <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Number Test</div>
+                  <div className="game-title">Daily Bonus</div>
+                  <div className="game-subtitle">Tap & Claim</div>
                 </div>
-                <div className="game-circle-glow-icon blue">
-                  <Sparkles size={18} color="#fff" />
+                <div className="game-icon-box blue">
+                  <Sparkles size={17} />
                 </div>
               </div>
 
-              <div className="game-bottom-pill-wrap">
+              <div className="game-bottom-pill-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span className="game-badge-pill blue">
-                  {user.dailyClaimedToday ? 'Claimed' : 'Daily $0.01'}
+                  {user.dailyClaimedToday ? '✓ Claimed' : 'Claim $0.01'}
+                </span>
+                <span className="box-timer-counter" style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: user.dailyClaimedToday ? '#fecdd3' : '#bfdbfe',
+                  background: 'rgba(0, 0, 0, 0.25)',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}>
+                  <Clock size={10} />
+                  {user.dailyClaimedToday ? (dailyTimeRemaining || '24:00:00') : '1/1 left'}
                 </span>
               </div>
             </div>
@@ -668,52 +844,144 @@ export default function App() {
             </div>
           </div>
 
-          {/* 10 Tasks List - Styled cleanly matching 2nd image box structure */}
+          {/* Anti-spam cooldown banner if user watched an ad recently */}
+          {adCooldownRemaining > 0 && (
+            <div style={{
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: 10,
+              padding: '10px 14px',
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#b45309',
+              fontSize: 13,
+              fontWeight: 600
+            }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Clock size={16} /> Wait for next ad watching
+              </span>
+              <span style={{
+                background: '#fef3c7',
+                padding: '2px 8px',
+                borderRadius: 6,
+                fontWeight: 700
+              }}>
+                {adCooldownRemaining}s
+              </span>
+            </div>
+          )}
+
+          {/* Active Tasks List (Watched ads are automatically removed) */}
           <div className="tasks-list">
-            {user.tasks.map((task, idx) => (
-              <div 
-                key={task.id} 
-                className="task-box-card"
-                onClick={() => !task.completed && startWatchingAd(task)}
-              >
-                {/* Colorful Square Box with First Letter of Brand (Replacing round Play icon) */}
-                <div 
-                  className="task-square-box" 
-                  style={{ 
-                    background: task.color, 
-                    color: '#ffffff',
-                    boxShadow: `0 3px 8px ${task.color}40`
-                  }}
-                >
-                  {task.name.charAt(0)}
+            {user.tasks.filter(t => !t.completed).length === 0 ? (
+              /* All Ads Watched - 20h Reset Countdown Screen */
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 14,
+                padding: '36px 20px',
+                textAlign: 'center',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+              }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  color: '#16a34a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 14px'
+                }}>
+                  <Check size={28} />
                 </div>
-
-                <div className="task-content-area">
-                  <span className="task-sub-label">Sponsor Video Ad #{idx + 1}</span>
-                  <div className="task-brand-name">{task.name}</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>
+                  All Ads Completed!
                 </div>
-
-                <div className="task-action-pill-wrap">
-                  <div className="task-reward-badge" style={{ color: task.completed ? '#64748b' : task.color }}>
-                    +${task.reward.toFixed(2)}
-                  </div>
-                  <button 
-                    className={`btn-ad-pill ${task.completed ? 'completed' : ''}`}
-                    disabled={task.completed}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startWatchingAd(task);
-                    }}
-                    style={{
-                      background: task.completed ? '#f1f5f9' : task.color,
-                      color: task.completed ? '#94a3b8' : '#ffffff'
-                    }}
-                  >
-                    {task.completed ? 'Watched' : 'Watch'}
-                  </button>
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4, maxWidth: 260, margin: '6px auto 16px' }}>
+                  You have watched all available sponsored ads. New ads will appear in:
+                </div>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  color: '#1d4ed8',
+                  padding: '8px 18px',
+                  borderRadius: 24,
+                  fontSize: 18,
+                  fontWeight: 800
+                }}>
+                  <Clock size={18} />
+                  <span>{tasksResetTimeRemaining || '20:00:00'}</span>
                 </div>
               </div>
-            ))}
+            ) : (
+              user.tasks
+                .filter(task => !task.completed)
+                .map((task, idx) => (
+                  <div 
+                    key={task.id} 
+                    className="task-box-card"
+                    onClick={() => startWatchingAd(task)}
+                  >
+                    {/* Premium Square Box with modern SVG Icon */}
+                    <div 
+                      className="task-square-box" 
+                      style={{ 
+                        background: task.color, 
+                        color: '#ffffff',
+                        boxShadow: `0 3px 8px ${task.color}40`
+                      }}
+                    >
+                      {task.name === 'AdGem' && <Video size={20} />}
+                      {task.name === 'BitLabs' && <MonitorPlay size={20} />}
+                      {task.name === 'Tapjoy' && <Flame size={20} />}
+                      {task.name === 'AdColony' && <Film size={20} />}
+                      {task.name === 'Fyber' && <Zap size={20} />}
+                      {task.name === 'InMobi' && <PlayCircle size={20} />}
+                      {task.name === 'ironSource' && <Tv size={20} />}
+                      {task.name === 'Chartboost' && <Trophy size={20} />}
+                      {task.name === 'Vungle' && <Clapperboard size={20} />}
+                      {task.name === 'Unity Ads' && <Star size={20} />}
+                      {!['AdGem','BitLabs','Tapjoy','AdColony','Fyber','InMobi','ironSource','Chartboost','Vungle','Unity Ads'].includes(task.name) && (
+                        <Play size={20} />
+                      )}
+                    </div>
+
+                    <div className="task-content-area">
+                      <span className="task-sub-label">Sponsor Video Ad #{task.id}</span>
+                      <div className="task-brand-name">{task.name}</div>
+                    </div>
+
+                    <div className="task-action-pill-wrap">
+                      <div className="task-reward-badge" style={{ color: task.color }}>
+                        +${typeof task.reward === 'number' ? (Number.isInteger(task.reward * 100) ? task.reward.toFixed(2) : task.reward.toString()) : task.reward}
+                      </div>
+                      <button 
+                        className="btn-ad-pill"
+                        disabled={adCooldownRemaining > 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startWatchingAd(task);
+                        }}
+                        style={{
+                          background: adCooldownRemaining > 0 ? '#94a3b8' : task.color,
+                          color: '#ffffff',
+                          opacity: adCooldownRemaining > 0 ? 0.75 : 1
+                        }}
+                      >
+                        {adCooldownRemaining > 0 ? `${adCooldownRemaining}s` : 'Watch'}
+                      </button>
+                    </div>
+                  </div>
+                ))
+            )}
           </div>
         </div>
       )}

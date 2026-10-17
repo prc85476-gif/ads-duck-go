@@ -1,50 +1,112 @@
 require('dotenv').config();
 const { Telegraf, Markup } = require('telegraf');
+const { getOrCreateUser } = require('./db-service');
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const WEBAPP_URL = process.env.WEBAPP_URL || 'https://your-webapp-url.com';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8973252938:AAEBNrqQV7On6RHFO7hsaq-YpTlY9KYj3Ns';
+const WEBAPP_URL = process.env.WEBAPP_URL || 'https://4bc94ql5kitgmhlmlzaobucb.72.62.252.28.sslip.io';
 
 if (!BOT_TOKEN) {
-  console.log("No BOT_TOKEN provided in .env, Telegram bot disabled. You can add BOT_TOKEN in .env anytime.");
-  process.exit(0);
+  console.log("No BOT_TOKEN provided in .env");
+  process.exit(1);
 }
 
 const bot = new Telegraf(BOT_TOKEN);
 
-bot.start((ctx) => {
-  const name = ctx.from.first_name || 'User';
-  ctx.reply(
-    `👋 Welcome ${name} to *AdEarn Mini App*!\n\n` +
-    `💰 Watch Ads, Play Games & Earn Daily Income!\n` +
-    `🚀 Fast withdrawals via USDT (TRC20), Binance Pay, and PayPal.`,
+// Sleep helper
+const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+bot.start(async (ctx) => {
+  const userId = ctx.from.id.toString();
+  const firstName = ctx.from.first_name || 'Member';
+  const username = ctx.from.username || '';
+  
+  // Parse referral start param: e.g. /start 123456789
+  const payload = ctx.startPayload || '';
+  const referredBy = (payload && payload !== userId) ? payload : null;
+
+  try {
+    // Save/Update user in Neon DB & credit referral if valid
+    await getOrCreateUser(userId, {
+      name: `${ctx.from.first_name || ''} ${ctx.from.last_name || ''}`.trim() || firstName,
+      username: username,
+      referred_by: referredBy
+    });
+  } catch (err) {
+    console.error("DB error on /start:", err);
+  }
+
+  // Animation simulation with Telegram typing & step-by-step interactive message
+  await ctx.sendChatAction('typing');
+  await sleep(600);
+
+  const welcomeMessage = 
+`🚀 *Welcome to AdsDuckGo Income Bot!* 🦆💰
+
+👋 Hello, *${firstName}*!
+Are you ready to earn daily income right from Telegram?
+
+✨ *Ways to Earn*:
+🛩️ *Airplane Crash Game* (Play 2 times daily & earn!)
+📺 *Watch Sponsor Ads* (Earn rewards directly!)
+🎁 *Daily Challenge Bonus* (1-Click instant reward)
+👥 *Referral System* (Earn *$0.01* for every active friend!)
+
+💎 *Instant Withdrawals* via USDT, Binance & BKash/Nagad.
+
+👇 *Click the button below to launch the Mini App!*`;
+
+  await ctx.reply(welcomeMessage, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard([
+      [Markup.button.webApp('🦆 Open Mini App & Start Earning', WEBAPP_URL)],
+      [
+        Markup.button.url('📢 Official Channel', 'https://t.me/adsduckgobot'),
+        Markup.button.callback('👥 My Referral Link', 'get_ref_link')
+      ],
+      [Markup.button.callback('ℹ️ How It Works', 'how_it_works')]
+    ])
+  });
+});
+
+bot.action('get_ref_link', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from.id.toString();
+  const refLink = `https://t.me/adsduckgobot?start=${userId}`;
+
+  await ctx.reply(
+`🔗 *Your Referral Link*:
+\`${refLink}\`
+
+💰 Share this link with your friends! When they join and play, you will receive *$0.01* bonus added directly to your wallet!`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.webApp('🚀 Open AdEarn App', WEBAPP_URL)],
-        [Markup.button.url('📢 Join Community Channel', 'https://t.me/telegram')],
-        [Markup.button.callback('ℹ️ How It Works', 'how_it_works')]
+        [Markup.button.url('📲 Share to Telegram', `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('Join AdsDuckGo Bot and start earning free daily rewards!')}`)]
       ])
     }
   );
 });
 
-bot.action('how_it_works', (ctx) => {
-  ctx.answerCbQuery();
-  ctx.reply(
-    `📖 *How to Earn with AdEarn*:\n\n` +
-    `1️⃣ *Daily Reward*: Claim $0.01 free every 24 hours.\n` +
-    `2️⃣ *Watch Ads*: Complete up to 10 ad tasks daily for rewards.\n` +
-    `3️⃣ *Play Games*: Lucky Spin and Number Challenge.\n` +
-    `4️⃣ *Withdraw*: Request payout once you hit minimum balance!`,
+bot.action('how_it_works', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.reply(
+`📖 *AdsDuckGo Guide*:
+
+1️⃣ *Play Games*: Tap 'Play & Earn' on Airplane Crash to score multipliers.
+2️⃣ *Watch Ads*: Complete sponsored video tasks with built-in anti-spam cooldown.
+3️⃣ *Daily Bonus*: Tap 'Daily Bonus' once every 24 hours for instant $0.01!
+4️⃣ *Withdraw*: Collect balance and request payout to your wallet securely.`,
     { parse_mode: 'Markdown' }
   );
 });
 
 bot.launch().then(() => {
-  console.log('Telegram Bot started successfully!');
+  console.log('🤖 @adsduckgobot started successfully with Neon DB!');
 }).catch(err => {
-  console.error('Error starting Telegram bot:', err);
+  console.error('Error starting bot:', err);
 });
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+module.exports = bot;
