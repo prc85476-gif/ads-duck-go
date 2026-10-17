@@ -233,6 +233,46 @@ app.post('/api/complete-task', async (req, res) => {
   }
 });
 
+// Adsgram Webhook Reward Endpoint (Called by Adsgram server on reward complete)
+app.get('/api/adsgram/reward', async (req, res) => {
+  const userId = req.query.userid || req.query.userId || "123456789";
+  const rewardAmount = parseFloat(req.query.reward) || 0.005;
+
+  try {
+    const user = await getOrCreateUser(userId);
+    const newBalance = +(user.balance + rewardAmount).toFixed(4);
+    const newTotalEarned = +(user.totalEarned + rewardAmount).toFixed(2);
+    const newTasksCompleted = user.tasksCompleted + 1;
+
+    await pool.query(`
+      UPDATE users SET
+        balance = $1,
+        total_earned = $2,
+        tasks_completed = $3,
+        last_ad_watched_at = $4,
+        updated_at = NOW()
+      WHERE id = $5
+    `, [newBalance, newTotalEarned, newTasksCompleted, Date.now(), userId]);
+
+    await pool.query('UPDATE bot_stats SET total_ads_watched = total_ads_watched + 1 WHERE id = 1');
+
+    await pool.query(`
+      INSERT INTO activities (id, user_id, title, description, time_text, type, icon)
+      VALUES ($1, $2, $3, $4, 'Just now', 'task', 'dollar')
+    `, [
+      'act_' + Date.now(),
+      userId,
+      'Adsgram Video Ad Reward',
+      `You earned $${rewardAmount}`
+    ]);
+
+    res.json({ ok: true, message: "Reward credited successfully" });
+  } catch (err) {
+    console.error("Adsgram reward webhook error:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Play Game (Lucky Spin or Number Challenge)
 app.post('/api/play-game', async (req, res) => {
   const { userId = "123456789", gameType, wonAmount = 0.02 } = req.body;

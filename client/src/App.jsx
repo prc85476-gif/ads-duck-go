@@ -358,7 +358,9 @@ export default function App() {
     }
   };
 
-  // Watch Ad & Earn
+  const ADSGRAM_BLOCK_ID = "54502";
+
+  // Watch Ad & Earn with Real Adsgram Integration (Block ID: 54502)
   const startWatchingAd = (task) => {
     if (adCooldownRemaining > 0) {
       showToast(`⏳ Please wait ${adCooldownRemaining}s for next ad watching to prevent spam!`);
@@ -368,6 +370,30 @@ export default function App() {
       showToast("Task already completed today!");
       return;
     }
+
+    // Check if Adsgram SDK is loaded in Telegram Mini App
+    if (window.Adsgram) {
+      try {
+        const AdController = window.Adsgram.init({
+          blockId: ADSGRAM_BLOCK_ID,
+          debug: false
+        });
+
+        AdController.show().then((result) => {
+          // User watched the full video ad
+          handleFinishAdReward(task);
+        }).catch((result) => {
+          console.warn("Adsgram notice / fallback:", result);
+          // If no ads available yet or still under approval, fallback smoothly to built-in ad player
+          setAdModal({ open: true, task, countdown: 5 });
+        });
+        return;
+      } catch (err) {
+        console.error("Adsgram init error:", err);
+      }
+    }
+
+    // Fallback built-in interactive ad player
     setAdModal({ open: true, task, countdown: 5 });
   };
 
@@ -381,10 +407,15 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [adModal.open, adModal.countdown]);
 
-  const handleFinishAd = async () => {
+  const handleFinishAd = () => {
     const task = adModal.task;
     setAdModal({ open: false, task: null, countdown: 5 });
+    if (task) {
+      handleFinishAdReward(task);
+    }
+  };
 
+  const handleFinishAdReward = async (task) => {
     try {
       const res = await fetch(`${API_BASE}/complete-task`, {
         method: 'POST',
