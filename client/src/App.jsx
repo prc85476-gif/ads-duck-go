@@ -374,9 +374,9 @@ export default function App() {
     }
   };
 
-  const ADSGRAM_BLOCK_ID = "54502";
+  const ADSGRAM_BLOCK_ID = "55687";
 
-  // Watch Ad & Earn with Real Adsgram Integration (Block ID: 54502)
+  // Watch Ad & Earn with Real Adsgram Integration (Block ID: 55687)
   const startWatchingAd = (task) => {
     if (adCooldownRemaining > 0) {
       showToast(`⏳ Please wait ${adCooldownRemaining}s for next ad watching to prevent spam!`);

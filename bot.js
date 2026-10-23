@@ -59,6 +59,7 @@ Ready to play, earn *Duck Coins* and climb the global leaderboard?
     parse_mode: 'Markdown',
     ...Markup.inlineKeyboard([
       [Markup.button.webApp('🦆 Play & Open Mini App', WEBAPP_URL)],
+      [Markup.button.webApp('📺 Watch Sponsor Ads (+10 DUCK)', WEBAPP_URL)],
       [
         Markup.button.url('📢 Official Channel', 'https://t.me/adsduckgobot'),
         Markup.button.callback('👥 Invite Friends', 'get_ref_link')
@@ -66,6 +67,18 @@ Ready to play, earn *Duck Coins* and climb the global leaderboard?
       [Markup.button.callback('ℹ️ How It Works', 'how_it_works')]
     ])
   });
+});
+
+bot.command(['ad', 'ads', 'watch'], async (ctx) => {
+  await ctx.reply(
+    `📺 *Watch Sponsor Ads & Earn Duck Coins* 🦆\n\n🎯 *Reward*: +10 Duck Coins per video ad!\n\nTap below to open the Mini App and claim your coins instantly:`,
+    {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.webApp('📺 Watch Ads in Mini App', WEBAPP_URL)]
+      ])
+    }
+  );
 });
 
 bot.action('get_ref_link', async (ctx) => {
