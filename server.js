@@ -393,9 +393,11 @@ if (fs.existsSync(clientDist)) {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
   // Start Telegram bot alongside server
-  if (process.env.BOT_TOKEN) {
+  const activeBotToken = process.env.BOT_TOKEN || '8973252938:AAEBNrqQV7On6RHFO7hsaq-YpTlY9KYj3Ns';
+  if (activeBotToken) {
     try {
       require('./bot');
+      console.log('🚀 Telegram Bot launch initiated for @adsduckgobot');
     } catch (botErr) {
       console.error("Bot launch notice:", botErr.message);
     }
