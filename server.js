@@ -79,9 +79,9 @@ app.post('/api/daily-claim', async (req, res) => {
       });
     }
 
-    const reward = 0.01;
-    const newBalance = +(user.balance + reward).toFixed(4);
-    const newTotalEarned = +(user.totalEarned + reward).toFixed(2);
+    const reward = 50;
+    const newBalance = Math.round(user.balance + reward);
+    const newTotalEarned = Math.round(user.totalEarned + reward);
     const nowIso = new Date().toISOString();
 
     await pool.query(`
@@ -97,10 +97,10 @@ app.post('/api/daily-claim', async (req, res) => {
     await pool.query(`
       INSERT INTO activities (id, user_id, title, description, time_text, type, icon)
       VALUES ($1, $2, 'Daily Reward', $3, 'Just now', 'daily', 'gift')
-    `, ['act_' + Date.now(), userId, `Claimed daily $${reward.toFixed(2)}`]);
+    `, ['act_' + Date.now(), userId, `Claimed +${reward} Duck Coins`]);
 
     const updatedUser = await getOrCreateUser(userId);
-    res.json({ success: true, message: "Daily reward claimed!", reward, newBalance, user: updatedUser });
+    res.json({ success: true, message: `Daily reward claimed! +${reward} Duck Coins`, reward, newBalance, user: updatedUser });
   } catch (err) {
     console.error("Daily claim error:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -109,7 +109,7 @@ app.post('/api/daily-claim', async (req, res) => {
 
 // Airplane Game Play Record (Max 2 times per 24 hours)
 app.post('/api/airplane-claim', async (req, res) => {
-  const { userId = "123456789", earned = 0.03, usdt = 0, btc = 0 } = req.body;
+  const { userId = "123456789", earned = 25 } = req.body;
   try {
     const user = await getOrCreateUser(userId);
 
@@ -124,10 +124,10 @@ app.post('/api/airplane-claim', async (req, res) => {
       });
     }
 
-    const earnedAmount = Number(earned) || 0.03;
+    const earnedAmount = Math.max(15, Math.round(Number(earned) || 25));
     const newPlanePlaysToday = (user.planePlaysToday || 0) + 1;
-    const newBalance = +(user.balance + earnedAmount).toFixed(4);
-    const newTotalEarned = +(user.totalEarned + earnedAmount).toFixed(2);
+    const newBalance = Math.round(user.balance + earnedAmount);
+    const newTotalEarned = Math.round(user.totalEarned + earnedAmount);
     const newGamesPlayed = (user.gamesPlayed || 0) + 1;
 
     await pool.query(`
@@ -145,17 +145,17 @@ app.post('/api/airplane-claim', async (req, res) => {
 
     await pool.query(`
       INSERT INTO activities (id, user_id, title, description, time_text, type, icon)
-      VALUES ($1, $2, 'Airplane Game Reward', $3, 'Just now', 'game', 'game')
+      VALUES ($1, $2, 'Airplane Combat Reward', $3, 'Just now', 'game', 'game')
     `, [
       'act_' + Date.now(), 
       userId, 
-      `Won $${earnedAmount.toFixed(4)} (${usdt} USDT, ${btc} BTC)`
+      `Won +${earnedAmount} Duck Coins in combat!`
     ]);
 
     const updatedUser = await getOrCreateUser(userId);
     res.json({
       success: true,
-      message: `Earned $${earnedAmount.toFixed(4)}! (${newPlanePlaysToday}/2 plays today)`,
+      message: `Earned +${earnedAmount} Duck Coins! (${newPlanePlaysToday}/2 plays today)`,
       user: updatedUser
     });
   } catch (err) {
@@ -222,14 +222,29 @@ app.post('/api/complete-task', async (req, res) => {
       'act_' + Date.now(),
       userId,
       `${task.name} Ad Reward`,
-      `You earned $${Number(task.reward).toString()}`
+      `You earned +${Number(task.reward)} Duck Coins`
     ]);
 
     const updatedUser = await getOrCreateUser(userId);
-    res.json({ success: true, message: `Watched ad from ${task.name}! Earned $${task.reward}`, user: updatedUser });
+    res.json({ success: true, message: `Watched clip from ${task.name}! Earned +${task.reward} Duck Coins`, user: updatedUser });
   } catch (err) {
     console.error("Complete task error:", err);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Global Pilot Leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const topUsers = await pool.query(`
+      SELECT id, name, username, balance, total_earned, photo_url
+      FROM users
+      ORDER BY balance DESC
+      LIMIT 30
+    `);
+    res.json({ success: true, leaderboard: topUsers.rows });
+  } catch (err) {
+    res.json({ success: true, leaderboard: [] });
   }
 });
 

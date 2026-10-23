@@ -307,9 +307,9 @@
       </div>
     </div>
     <div class="stats-box" style="margin-right: 36px;">
-      <div class="coin-row"><span class="badge-usdt">₮ Earned</span> <span id="usdtEarnedAmount" style="color:#2ecc71; font-weight:bold;">+$0.0000</span></div>
-      <div class="coin-row"><span class="badge-usdt">₮ USDT</span> <span id="usdtCount">0</span></div>
-      <div class="coin-row"><span class="badge-btc">₿ BTC</span> <span id="btcCount">0</span></div>
+      <div class="coin-row"><span class="badge-usdt">🦆 DUCK</span> <span id="usdtEarnedAmount" style="color:#ffd700; font-weight:bold;">+0</span></div>
+      <div class="coin-row"><span class="badge-usdt">⭐ Stars</span> <span id="usdtCount">0</span></div>
+      <div class="coin-row"><span class="badge-btc">💎 Gems</span> <span id="btcCount">0</span></div>
       <div style="font-size:11px; color:#ffd700; margin-top:1px;">SCORE: <span id="scoreCount">0</span></div>
     </div>
   </div>
@@ -321,12 +321,12 @@
     <h1 id="endTitle">VICTORY</h1>
     <div class="reward-card">
       <div><span>Total Score:</span> <span id="resScore" style="color:#ffd700">0</span></div>
-      <div><span style="color:#2ecc71">₮ Total USDT Collected:</span> <span id="resUsdtCount" style="color:#2ecc71">0 USDT</span></div>
-      <div><span style="color:#38bdf8">💵 Total Earnings ($):</span> <span id="resEarnedUsdt" style="color:#f1c40f; font-size:18px;">$0.0000</span></div>
+      <div><span style="color:#38bdf8">⭐ Items Collected:</span> <span id="resUsdtCount" style="color:#38bdf8">0</span></div>
+      <div><span style="color:#ffd700">🦆 Duck Coins Won:</span> <span id="resEarnedUsdt" style="color:#ffd700; font-size:18px;">+25 DUCK</span></div>
     </div>
     <div class="btn-actions-row">
       <button class="btn-restart" onclick="resetGame()">PLAY AGAIN</button>
-      <button class="btn-claim-exit" onclick="claimAndExit()">CLAIM BALANCE</button>
+      <button class="btn-claim-exit" onclick="claimAndExit()">CLAIM DUCK COINS</button>
     </div>
   </div>
 
@@ -359,11 +359,11 @@ function confirmExit() {
 }
 
 function claimAndExit() {
-  // USDT khaile 0.0005$ kore add hbe
-  const earnedBalance = +(usdtCoins * 0.0005).toFixed(4);
+  const earnedCoins = Math.max(15, Math.floor(score / 35) + usdtCoins * 2 + btcCoins * 5);
   window.parent.postMessage({ 
     type: 'AIRPLANE_GAME_CLAIM', 
-    earned: earnedBalance, 
+    earned: earnedCoins, 
+    coins: earnedCoins,
     usdt: usdtCoins, 
     btc: btcCoins, 
     gold: goldCoins, 
@@ -1187,8 +1187,8 @@ function createExplosion(x, y, count = 14, big = false) {
 
 function updateHUD() {
   document.getElementById('hpFill').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%';
-  const earnedUsdtDollars = (usdtCoins * 0.0005).toFixed(4);
-  document.getElementById('usdtEarnedAmount').innerText = `+$${earnedUsdtDollars}`;
+  const earnedCoins = Math.max(0, Math.floor(score / 35) + usdtCoins * 2 + btcCoins * 5);
+  document.getElementById('usdtEarnedAmount').innerText = `+${earnedCoins}`;
   document.getElementById('usdtCount').innerText = usdtCoins;
   document.getElementById('btcCount').innerText = btcCoins;
   document.getElementById('scoreCount').innerText = score;
@@ -1202,10 +1202,10 @@ function endGame(victory) {
   title.innerText = victory ? 'VICTORY!' : 'MISSION OVER';
   title.style.color = victory ? '#f1c40f' : '#ff4d4d';
 
-  const totalEarnedUsdt = (usdtCoins * 0.0005).toFixed(4);
+  const earnedCoins = Math.max(15, Math.floor(score / 35) + usdtCoins * 2 + btcCoins * 5);
   document.getElementById('resScore').innerText = score;
-  document.getElementById('resUsdtCount').innerText = `${usdtCoins} USDT`;
-  document.getElementById('resEarnedUsdt').innerText = `$${totalEarnedUsdt}`;
+  document.getElementById('resUsdtCount').innerText = `${usdtCoins + btcCoins} Items`;
+  document.getElementById('resEarnedUsdt').innerText = `+${earnedCoins} DUCK`;
 }
 
 function resetGame() {
@@ -1534,12 +1534,12 @@ function gameLoop() {
         usdtCoins++;
         score += 100;
         playUsdtSound();
-        addFloatingText('+$0.0005', c.x, c.y, '#2ecc71');
+        addFloatingText('+5 DUCK!', c.x, c.y, '#ffd700');
       } else if (c.type === 'BTC') {
         btcCoins++;
         score += 300;
         playUsdtSound();
-        addFloatingText('+1 BTC!', c.x, c.y, '#f7931a');
+        addFloatingText('+10 DUCK!', c.x, c.y, '#ff9f1a');
       } else if (c.type === 'UPGRADE') {
         player.weaponLevel = Math.min(3, player.weaponLevel + 1);
         score += 50;

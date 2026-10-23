@@ -40,28 +40,28 @@ bot.start(async (ctx) => {
   await sleep(600);
 
   const welcomeMessage = 
-`🚀 *Welcome to AdsDuckGo Income Bot!* 🦆💰
+`🚀 *Welcome to AdsDuckGo Game Bot!* 🦆🎮
 
 👋 Hello, *${firstName}*!
-Are you ready to earn daily income right from Telegram?
+Ready to play, earn *Duck Coins* and climb the global leaderboard?
 
 ✨ *Ways to Earn*:
-🛩️ *Airplane Crash Game* (Play 2 times daily & earn!)
-📺 *Watch Sponsor Ads* (Earn rewards directly!)
-🎁 *Daily Challenge Bonus* (1-Click instant reward)
-👥 *Referral System* (Earn *$0.01* for every active friend!)
+🛩️ *Airplane 1945 Combat* (Fly, defeat bosses & win Duck Coins!)
+📺 *Watch Sponsor Clips* (+10 Duck Coins per clip!)
+🎁 *Daily Check-in Bonus* (+50 Duck Coins every 24 hours!)
+👥 *Invite Friends* (+100 Duck Coins for each recruited pilot!)
 
-💎 *Instant Withdrawals* via USDT, Binance & BKash/Nagad.
+🏆 *Global Leaderboard* - Collect Duck Coins & compete for the top ranks!
 
 👇 *Click the button below to launch the Mini App!*`;
 
   await ctx.reply(welcomeMessage, {
     parse_mode: 'Markdown',
     ...Markup.inlineKeyboard([
-      [Markup.button.webApp('🦆 Open Mini App & Start Earning', WEBAPP_URL)],
+      [Markup.button.webApp('🦆 Play & Open Mini App', WEBAPP_URL)],
       [
         Markup.button.url('📢 Official Channel', 'https://t.me/adsduckgobot'),
-        Markup.button.callback('👥 My Referral Link', 'get_ref_link')
+        Markup.button.callback('👥 Invite Friends', 'get_ref_link')
       ],
       [Markup.button.callback('ℹ️ How It Works', 'how_it_works')]
     ])
@@ -77,11 +77,11 @@ bot.action('get_ref_link', async (ctx) => {
 `🔗 *Your Referral Link*:
 \`${refLink}\`
 
-💰 Share this link with your friends! When they join and play, you will receive *$0.01* bonus added directly to your wallet!`,
+💰 Share this link with your friends! When they join and play, you will receive *100 Duck Coins* bonus added directly to your balance!`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.url('📲 Share to Telegram', `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('Join AdsDuckGo Bot and start earning free daily rewards!')}`)]
+        [Markup.button.url('📲 Share to Telegram', `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('Join AdsDuckGo and play Airplane Crash to earn Duck Coins!')}`)]
       ])
     }
   );
@@ -90,12 +90,12 @@ bot.action('get_ref_link', async (ctx) => {
 bot.action('how_it_works', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.reply(
-`📖 *AdsDuckGo Guide*:
+`📖 *AdsDuckGo Game Guide*:
 
-1️⃣ *Play Games*: Tap 'Play & Earn' on Airplane Crash to score multipliers.
-2️⃣ *Watch Ads*: Complete sponsored video tasks with built-in anti-spam cooldown.
-3️⃣ *Daily Bonus*: Tap 'Daily Bonus' once every 24 hours for instant $0.01!
-4️⃣ *Withdraw*: Collect balance and request payout to your wallet securely.`,
+1️⃣ *Airplane Combat*: Dodge bullets, shoot bosses & collect Duck Coins!
+2️⃣ *Sponsor Ads*: Watch short video clips to instantly claim +10 Duck Coins.
+3️⃣ *Daily Bonus*: Claim 50 free Duck Coins once every 24 hours!
+4️⃣ *Leaderboard*: Accumulate Duck Coins to rank #1 on the pilot leaderboard!`,
     { parse_mode: 'Markdown' }
   );
 });

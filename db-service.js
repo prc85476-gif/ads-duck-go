@@ -20,10 +20,10 @@ function generateInitialTasks() {
     { id: 10, name: "Unity Ads", color: "#09090b", icon: "star" }
   ];
 
-  return baseTasks.map((t, idx) => ({
+  return baseTasks.map((t) => ({
     id: t.id,
     name: t.name,
-    reward: idx < 2 ? 0.01 : getRandomTaskReward(),
+    reward: 10,
     completed: false,
     tag: "Available",
     logo: t.name,
@@ -104,9 +104,9 @@ async function getOrCreateUser(userId = "123456789", extraData = {}) {
         userId,
         extraData.name || 'User',
         extraData.username || '',
-        0.0000,
-        0.0000,
-        0.0000,
+        100,
+        0,
+        100,
         JSON.stringify(initialTasks),
         Date.now(),
         extraData.photo_url || '',
@@ -116,12 +116,12 @@ async function getOrCreateUser(userId = "123456789", extraData = {}) {
       ];
       res = await client.query(insertQuery, initialValues);
 
-      // If referred by someone, credit referrer $0.01 bonus instantly
+      // If referred by someone, credit referrer 100 Duck Coins bonus instantly
       if (referrerId && referrerId !== userId) {
         try {
           const refUserRes = await client.query('SELECT * FROM users WHERE id = $1', [referrerId]);
           if (refUserRes.rows.length > 0) {
-            const bonus = 0.01;
+            const bonus = 100;
             await client.query(`
               UPDATE users SET
                 balance = balance + $1,
@@ -135,7 +135,7 @@ async function getOrCreateUser(userId = "123456789", extraData = {}) {
             await client.query(`
               INSERT INTO activities (id, user_id, title, description, time_text, type, icon)
               VALUES ($1, $2, 'Referral Bonus', $3, 'Just now', 'referral', 'users')
-            `, ['act_ref_' + Date.now(), referrerId, `Earned $${bonus.toFixed(2)} from @${extraData.username || extraData.name || 'friend'}`]);
+            `, ['act_ref_' + Date.now(), referrerId, `Earned +100 Duck Coins from @${extraData.username || extraData.name || 'pilot'}`]);
           }
         } catch (refErr) {
           console.error("Error crediting referral bonus:", refErr);

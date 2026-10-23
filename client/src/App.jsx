@@ -66,10 +66,10 @@ function generateInitialTasks() {
     { id: 10, name: "Unity Ads", color: "#09090b", icon: "star" }
   ];
 
-  return baseTasks.map((t, idx) => ({
+  return baseTasks.map((t) => ({
     id: t.id,
     name: t.name,
-    reward: idx < 2 ? 0.01 : getRandomTaskReward(),
+    reward: 10,
     completed: false,
     tag: "Available",
     logo: t.name,
@@ -79,7 +79,7 @@ function generateInitialTasks() {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'tasks' | 'wallet' | 'profile'
+  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'tasks' | 'referral' | 'leaderboard'
   
   // User State
   const [user, setUser] = useState({
@@ -87,42 +87,40 @@ export default function App() {
     name: "Md. Rakib",
     username: "rakib_pro",
     verified: true,
-    balance: 0.2500,
-    usdtRate: 100,
-    pendingBalance: 0.0000,
-    totalEarned: 12.50,
-    withdrawn: 8.00,
-    totalTransactions: 15,
-    pendingRequests: 1,
+    balance: 150,
+    totalEarned: 350,
     tasksCompleted: 0,
     gamesPlayed: 2,
     planePlaysToday: 0,
     planePlaysWindowStart: Date.now(),
     dailyClaimedToday: false,
     lastDailyClaim: null,
-    referralsCount: 0,
-    referralEarnings: 0.00,
+    referralsCount: 8,
+    referralEarnings: 800,
     referralCode: "123456789",
     botUsername: "adsduckgobot",
-    perReferralBonus: 0.01,
+    perReferralBonus: 100,
     photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
     recentActivity: [
-      { id: '1', title: 'Task Reward', desc: 'You earned $0.01', time: '2h ago', type: 'task' },
-      { id: '2', title: 'Game Reward', desc: 'Lucky Spin bonus', time: '5h ago', type: 'game' }
+      { id: '1', title: 'Ad Clip Reward', desc: 'You earned +10 Duck Coins', time: '2h ago', type: 'task' },
+      { id: '2', title: 'Airplane Combat', desc: 'Won +25 Duck Coins', time: '5h ago', type: 'game' }
     ],
-    tasks: generateInitialTasks(),
-    withdrawals: [
-      { id: 'w1', method: 'USDT (TRC20)', amount: 5.00, status: 'Completed', date: '2026-10-15' },
-      { id: 'w2', method: 'Binance Pay', amount: 3.00, status: 'Completed', date: '2026-10-12' },
-      { id: 'w3', method: 'USDT (TRC20)', amount: 2.00, status: 'Pending', date: '2026-10-16' }
-    ]
+    tasks: generateInitialTasks()
   });
+
+  // Leaderboard data
+  const [leaderboard, setLeaderboard] = useState([
+    { id: '1', name: 'CyberDuck_99', username: 'cyber_duck', balance: 14250, badge: '🥇 ACE' },
+    { id: '2', name: 'SkyMaster_Pro', username: 'skymaster', balance: 11800, badge: '🥈 PRO' },
+    { id: '3', name: 'CryptoAviator', username: 'aviator77', balance: 9400, badge: '🥉 ELITE' },
+    { id: '4', name: 'DuckVader', username: 'duckvader', balance: 7650, badge: '🎖️ TOP' },
+    { id: '5', name: 'TonFighter', username: 'tonfighter', balance: 6200, badge: '🎖️ TOP' },
+    { id: '6', name: 'FlightOfficer', username: 'flightoff', balance: 5100, badge: '🎖️ TOP' },
+    { id: '7', name: 'AeroBlast', username: 'aeroblast', balance: 4350, badge: '🎖️ TOP' }
+  ]);
 
   // Modals & Timers
   const [adModal, setAdModal] = useState({ open: false, task: null, countdown: 5 });
-  const [withdrawModal, setWithdrawModal] = useState({ open: false, method: 'USDT (TRC20)', min: 5.00 });
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [withdrawAddress, setWithdrawAddress] = useState('');
   const [gameModal, setGameModal] = useState({ open: false, type: 'spin', playing: false, result: null });
   const [toastMessage, setToastMessage] = useState('');
   const [referralCopied, setReferralCopied] = useState(false);
@@ -232,14 +230,14 @@ export default function App() {
       if (e.data.type === 'AIRPLANE_GAME_EXIT') {
         setPlaneGameOpen(false);
       } else if (e.data.type === 'AIRPLANE_GAME_CLAIM') {
-        const earned = e.data.earned || 0.03;
+        const earnedCoins = Math.max(15, Math.round(Number(e.data.earned || e.data.coins || 25)));
         setPlaneGameOpen(false);
 
         try {
           const res = await fetch(`${API_BASE}/airplane-claim`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.id, earned, usdt: e.data.usdt, btc: e.data.btc })
+            body: JSON.stringify({ userId: user.id, earned: earnedCoins })
           });
           const data = await res.json();
           if (data.success) {
@@ -253,14 +251,14 @@ export default function App() {
             ...prev,
             planePlaysToday: (prev.planePlaysToday || 0) + 1,
             planePlaysWindowStart: prev.planePlaysToday === 0 ? Date.now() : prev.planePlaysWindowStart,
-            balance: +(prev.balance + earned).toFixed(4),
-            totalEarned: +(prev.totalEarned + earned).toFixed(2),
+            balance: Math.round(prev.balance + earnedCoins),
+            totalEarned: Math.round(prev.totalEarned + earnedCoins),
             gamesPlayed: prev.gamesPlayed + 1,
             recentActivity: [
               { 
                 id: Date.now().toString(), 
-                title: 'Airplane Crash Game', 
-                desc: `Won $${earned.toFixed(4)} (${e.data.usdt || 0} USDT, ${e.data.btc || 0} BTC)`, 
+                title: 'Airplane Combat', 
+                desc: `Won +${earnedCoins} Duck Coins`, 
                 time: 'Just now', 
                 type: 'game' 
               },
@@ -270,7 +268,7 @@ export default function App() {
         }
 
         confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
-        showToast(`🛩️ Game Rewards: +$${earned.toFixed(4)} credited to wallet!`);
+        showToast(`🛩️ Combat Rewards: +${earnedCoins} Duck Coins credited!`);
       }
     };
     window.addEventListener('message', handleGameMessage);
@@ -308,14 +306,32 @@ export default function App() {
           setUser(prev => ({
             ...prev,
             ...data.data,
-            referralEarnings: data.data.referralEarnings ?? 0,
-            referralsCount: data.data.referralsCount ?? 0,
+            balance: Math.round(data.data.balance || 150),
+            totalEarned: Math.round(data.data.totalEarned || 350),
+            referralEarnings: data.data.referralEarnings ?? 800,
+            referralsCount: data.data.referralsCount ?? 8,
             referralCode: data.data.referralCode || currentUserId,
             botUsername: "adsduckgobot"
           }));
         }
       })
       .catch(err => console.log('Offline/Local standalone mode active'));
+
+    // Fetch leaderboard
+    fetch(`${API_BASE}/leaderboard`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.leaderboard && data.leaderboard.length > 0) {
+          setLeaderboard(data.leaderboard.map((u, idx) => ({
+            id: u.id,
+            name: u.name || 'Pilot',
+            username: u.username || 'pilot',
+            balance: Math.round(u.balance || 0),
+            badge: idx === 0 ? '🥇 ACE' : idx === 1 ? '🥈 PRO' : idx === 2 ? '🥉 ELITE' : '🎖️ TOP'
+          })));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const showToast = (msg) => {
@@ -323,7 +339,7 @@ export default function App() {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  // Claim Daily Reward ($0.01)
+  // Claim Daily Reward (50 Duck Coins)
   const handleClaimDaily = async () => {
     if (user.dailyClaimedToday) return;
 
@@ -337,7 +353,7 @@ export default function App() {
       if (data.success) {
         setUser(data.user);
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-        showToast("🎉 Daily reward of $0.01 added!");
+        showToast("🎉 Daily reward of 50 Duck Coins added!");
       } else {
         showToast(data.message);
       }
@@ -345,16 +361,16 @@ export default function App() {
       // Offline fallback
       setUser(prev => ({
         ...prev,
-        balance: +(prev.balance + 0.01).toFixed(4),
-        totalEarned: +(prev.totalEarned + 0.01).toFixed(2),
+        balance: prev.balance + 50,
+        totalEarned: prev.totalEarned + 50,
         dailyClaimedToday: true,
         recentActivity: [
-          { id: Date.now().toString(), title: 'Daily Reward', desc: 'Claimed daily $0.01', time: 'Just now', type: 'daily' },
+          { id: Date.now().toString(), title: 'Daily Check-in', desc: 'Claimed +50 Duck Coins', time: 'Just now', type: 'daily' },
           ...prev.recentActivity
         ]
       }));
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-      showToast("🎉 Daily reward of $0.01 added!");
+      showToast("🎉 Daily reward of 50 Duck Coins added!");
     }
   };
 
@@ -438,13 +454,13 @@ export default function App() {
         return {
           ...prev,
           tasks: updatedTasks,
-          balance: +(prev.balance + task.reward).toFixed(4),
-          totalEarned: +(prev.totalEarned + task.reward).toFixed(2),
+          balance: prev.balance + task.reward,
+          totalEarned: prev.totalEarned + task.reward,
           tasksCompleted: prev.tasksCompleted + 1,
           lastAdWatchedAt: Date.now(),
           allTasksCompletedAt: allCompletedNow ? Date.now() : prev.allTasksCompletedAt,
           recentActivity: [
-            { id: Date.now().toString(), title: `${task.name} Ad Reward`, desc: `You earned $${task.reward}`, time: 'Just now', type: 'task' },
+            { id: Date.now().toString(), title: `${task.name} Clip Reward`, desc: `You earned +${task.reward} Duck Coins`, time: 'Just now', type: 'task' },
             ...prev.recentActivity
           ]
         };
@@ -452,7 +468,7 @@ export default function App() {
     }
 
     confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
-    showToast(`💰 Successfully earned $${task.reward}!`);
+    showToast(`🦆 Successfully earned +${task.reward} Duck Coins!`);
   };
 
   // Play Game Handler
@@ -463,7 +479,7 @@ export default function App() {
   const executeGameRound = async () => {
     setGameModal(prev => ({ ...prev, playing: true }));
     setTimeout(async () => {
-      const prize = gameModal.type === 'spin' ? 0.02 : 0.03;
+      const prize = gameModal.type === 'spin' ? 20 : 30;
       setGameModal(prev => ({ ...prev, playing: false, result: prize }));
 
       try {
@@ -477,78 +493,19 @@ export default function App() {
       } catch {
         setUser(prev => ({
           ...prev,
-          balance: +(prev.balance + prize).toFixed(4),
-          totalEarned: +(prev.totalEarned + prize).toFixed(2),
+          balance: prev.balance + prize,
+          totalEarned: prev.totalEarned + prize,
           gamesPlayed: prev.gamesPlayed + 1,
           recentActivity: [
-            { id: Date.now().toString(), title: `${gameModal.type === 'spin' ? 'Lucky Spin' : 'Number Challenge'}`, desc: `Won $${prize.toFixed(2)}`, time: 'Just now', type: 'game' },
+            { id: Date.now().toString(), title: `${gameModal.type === 'spin' ? 'Lucky Spin' : 'Number Challenge'}`, desc: `Won +${prize} Duck Coins`, time: 'Just now', type: 'game' },
             ...prev.recentActivity
           ]
         }));
       }
 
       confetti({ particleCount: 70, spread: 80, origin: { y: 0.5 } });
-      showToast(`🎯 You won $${prize.toFixed(2)}!`);
+      showToast(`🎯 You won +${prize} Duck Coins!`);
     }, 1500);
-  };
-
-  // Withdraw Handler (Opens bottom sheet window)
-  const openWithdrawModal = (method = 'USDT (TRC20)', min = 0.10) => {
-    setWithdrawModal({ open: true, method, min });
-    setWithdrawAmount(min.toString());
-  };
-
-  const handleWithdrawSubmit = async (e) => {
-    e.preventDefault();
-    const amt = parseFloat(withdrawAmount);
-
-    if (isNaN(amt) || amt < withdrawModal.min) {
-      showToast(`Minimum withdrawal is $${withdrawModal.min.toFixed(2)}`);
-      return;
-    }
-    if (user.balance < amt) {
-      showToast("Insufficient available balance!");
-      return;
-    }
-    if (!withdrawAddress.trim()) {
-      showToast("Please enter your payout address / account");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/withdraw`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          method: withdrawModal.method,
-          amount: amt,
-          walletAddress: withdrawAddress
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser(data.user);
-      } else {
-        throw new Error(data.message);
-      }
-    } catch {
-      setUser(prev => ({
-        ...prev,
-        balance: +(prev.balance - amt).toFixed(4),
-        pendingBalance: +(prev.pendingBalance + amt).toFixed(4),
-        pendingRequests: prev.pendingRequests + 1,
-        totalTransactions: prev.totalTransactions + 1,
-        withdrawals: [
-          { id: 'w' + Date.now(), method: withdrawModal.method, amount: amt, status: 'Pending', date: new Date().toISOString().split('T')[0], address: withdrawAddress },
-          ...prev.withdrawals
-        ]
-      }));
-    }
-
-    setWithdrawModal({ open: false, method: '', min: 0 });
-    setWithdrawAddress('');
-    showToast("✅ Withdrawal request submitted!");
   };
 
   // Header Brand & Top Area
@@ -655,10 +612,10 @@ export default function App() {
             </div>
 
             <div className="balance-card-header" style={{ position: 'relative', zIndex: 2 }}>
-              <div className="wallet-icon-box">
-                <WalletIcon size={18} color="#fff" />
+              <div className="wallet-icon-box" style={{ background: '#f59e0b' }}>
+                <Trophy size={18} color="#fff" />
               </div>
-              <span className="balance-label">Available Balance</span>
+              <span className="balance-label">Duck Coin Balance</span>
               
               {/* Right Side Pill Badge */}
               <div style={{
@@ -675,27 +632,27 @@ export default function App() {
                 border: '1px solid rgba(255, 255, 255, 0.25)'
               }}>
                 <Sparkles size={13} color="#fde047" />
-                <span>Active Earning</span>
+                <span>Pilot Cadet</span>
               </div>
             </div>
 
             <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '6px' }}>
               <div>
-                <div className="balance-amount">${user.balance.toFixed(4)}</div>
-                <div className="balance-usdt-approx">≈ {(user.balance * user.usdtRate).toFixed(2)} USDT</div>
+                <div className="balance-amount">{Math.round(user.balance).toLocaleString()} <span style={{ fontSize: 18, color: '#fde047' }}>DUCK 🦆</span></div>
+                <div className="balance-usdt-approx">Global Rank: #42 • Season 1 Era</div>
               </div>
             </div>
           </div>
 
-          {/* Action Dual Buttons (Matching 2nd pic style) */}
+          {/* Action Dual Buttons (Leaderboard & Watch Ads) */}
           <div className="hero-dual-actions">
-            <button className="action-pill-btn withdraw" onClick={() => openWithdrawModal('USDT (TRC20)', 5.00)}>
-              <div className="action-icon-circle withdraw">
-                <ArrowDownLeft size={20} />
+            <button className="action-pill-btn withdraw" onClick={() => setActiveTab('leaderboard')}>
+              <div className="action-icon-circle withdraw" style={{ background: '#fef3c7', color: '#b45309' }}>
+                <Trophy size={20} />
               </div>
               <div className="action-texts">
-                <span className="action-subtext">Instant Payout</span>
-                <span className="action-maintext withdraw">Withdraw</span>
+                <span className="action-subtext">Global Ranking</span>
+                <span className="action-maintext withdraw" style={{ color: '#b45309' }}>Leaderboard</span>
               </div>
             </button>
 
@@ -705,7 +662,7 @@ export default function App() {
               </div>
               <div className="action-texts">
                 <span className="action-subtext">Watch & Earn</span>
-                <span className="action-maintext earning">Watching Ads</span>
+                <span className="action-maintext earning">+10 DUCK Clips</span>
               </div>
             </button>
           </div>
@@ -991,8 +948,8 @@ export default function App() {
                     </div>
 
                     <div className="task-action-pill-wrap">
-                      <div className="task-reward-badge" style={{ color: task.color }}>
-                        +${typeof task.reward === 'number' ? (Number.isInteger(task.reward * 100) ? task.reward.toFixed(2) : task.reward.toString()) : task.reward}
+                      <div className="task-reward-badge" style={{ color: task.color, fontWeight: 800 }}>
+                        +{task.reward} DUCK
                       </div>
                       <button 
                         className="btn-ad-pill"
@@ -1043,11 +1000,11 @@ export default function App() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, opacity: 0.9 }}>
               <Users size={18} color="#fff" />
-              <span>Invite Friends & Earn $0.01 Per Refer</span>
+              <span>Recruit Pilots & Earn 100 DUCK Each</span>
             </div>
-            <div style={{ fontSize: '32px', fontWeight: 800 }}>+${(user.referralEarnings || 0.08).toFixed(2)}</div>
+            <div style={{ fontSize: '32px', fontWeight: 800 }}>+{user.referralEarnings || 800} DUCK 🦆</div>
             <div style={{ fontSize: '12px', opacity: 0.9, lineHeight: '1.4' }}>
-              When your invited friend joins and plays <b>1 round of Airplane Crash game</b>, your referral is activated and <b>$0.01</b> is instantly credited to your wallet!
+              When your invited friend joins and plays <b>1 round of Airplane Combat</b>, your referral is activated and <b>100 Duck Coins</b> are instantly credited to your balance!
             </div>
           </div>
 
@@ -1132,11 +1089,11 @@ export default function App() {
             <button 
               onClick={() => {
                 const shareLink = `https://t.me/${user.botUsername}?start=${user.referralCode}`;
-                const shareText = `🚀 Join AdEarn Mini App and earn daily income watching ads! Use my referral link: ${shareLink}`;
+                const shareText = `🦆 Join AdsDuckGo and play Airplane Combat to earn Duck Coins! Use my referral link: ${shareLink}`;
                 if (window.Telegram && window.Telegram.WebApp) {
-                  window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent('🚀 Earn daily income watching ads!')}`);
+                  window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent('🦆 Play Airplane Combat & earn Duck Coins!')}`);
                 } else if (navigator.share) {
-                  navigator.share({ title: 'AdEarn Referral', text: shareText, url: shareLink });
+                  navigator.share({ title: 'AdsDuckGo Referral', text: shareText, url: shareLink });
                 } else {
                   navigator.clipboard?.writeText(shareText);
                   showToast("📋 Referral share message copied!");
@@ -1154,7 +1111,7 @@ export default function App() {
               }}
             >
               <Users size={18} />
-              Share on Telegram (+0.01$)
+              Share on Telegram (+100 DUCK 🪙)
             </button>
           </div>
 
@@ -1170,22 +1127,22 @@ export default function App() {
               </div>
               <div className="stat-content">
                 <span className="stat-label">Total Referrals</span>
-                <span className="stat-number">{user.referralsCount || 8} users</span>
+                <span className="stat-number">{user.referralsCount || 8} cadets</span>
               </div>
             </div>
 
             <div className="stat-card">
-              <div className="stat-icon withdrawn">
-                <DollarSign size={18} />
+              <div className="stat-icon withdrawn" style={{ background: '#fef3c7', color: '#b45309' }}>
+                <Trophy size={18} />
               </div>
               <div className="stat-content">
-                <span className="stat-label">Referral Income</span>
-                <span className="stat-number">${(user.referralEarnings || 0.08).toFixed(2)}</span>
+                <span className="stat-label">Coins Earned</span>
+                <span className="stat-number">+{user.referralEarnings || 800} DUCK</span>
               </div>
             </div>
           </div>
 
-          {/* Referral Benefits matching 2nd image style */}
+          {/* Referral Benefits */}
           <div className="section-header">
             <span className="section-title">How It Works</span>
           </div>
@@ -1207,143 +1164,113 @@ export default function App() {
               </div>
               <div className="activity-details">
                 <div className="activity-title">2. Play 1 Airplane Game</div>
-                <div className="activity-sub">Friend must play at least 1 round of Airplane Crash game to activate</div>
+                <div className="activity-sub">Friend must play at least 1 round of Airplane Combat to activate</div>
               </div>
             </div>
 
             <div className="activity-item" style={{ border: '1.5px solid #dce4ee', borderRadius: 'var(--radius-lg)' }}>
               <div className="activity-icon task" style={{ background: '#eff6ff', color: '#1e6bf5' }}>
-                <DollarSign size={20} />
+                <Trophy size={20} />
               </div>
               <div className="activity-details">
-                <div className="activity-title">3. Instant $0.01 Bonus</div>
-                <div className="activity-sub">Upon successful activation, $0.01 is instantly credited to your wallet</div>
+                <div className="activity-title">3. Instant +100 Duck Coins</div>
+                <div className="activity-sub">Upon activation, 100 Duck Coins are instantly added to your balance</div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ======================= TAB 4: WALLET (Replaced Profile page) ======================= */}
-      {activeTab === 'wallet' && (
+      {/* ======================= TAB 4: LEADERBOARD ======================= */}
+      {activeTab === 'leaderboard' && (
         <div className="main-view">
-          <div className="wallet-header">
-            <div className="wallet-title">
-              <WalletIcon size={24} color="#1e6bf5" />
-              <span>Wallet</span>
+          <div className="leaderboard-header">
+            <div className="leaderboard-title">
+              <Trophy size={24} color="#f59e0b" />
+              <span>Pilot Leaderboard</span>
             </div>
-            <div className="bell-btn" onClick={() => showToast("Settings updated")}>
-              <Settings size={18} />
+            <div className="bell-btn" onClick={() => showToast("Rankings update in real-time!")}>
+              <Award size={18} color="#2563eb" />
             </div>
           </div>
 
-          {/* Available Balance Box */}
-          <div className="balance-hero-card">
-            <div className="balance-card-header">
-              <div className="wallet-icon-box">
-                <WalletIcon size={18} color="#fff" />
+          {/* User's Current Standing Card */}
+          <div className="leaderboard-hero-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Your Pilot Standing
+              </span>
+              <span style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                Season 1 Active
+              </span>
+            </div>
+
+            <div className="leaderboard-user-row">
+              <img 
+                src={user.photoUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"} 
+                alt="Pilot Avatar" 
+                className="leaderboard-avatar"
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 800 }}>{user.name}</div>
+                <div style={{ fontSize: 12, color: '#bfdbfe' }}>@{user.username || 'pilot'} • Cadet Rank</div>
               </div>
-              <span className="balance-label">Available Balance</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#fde047' }}>
+                  {Math.round(user.balance).toLocaleString()} <span style={{ fontSize: 13 }}>DUCK</span>
+                </div>
+                <div style={{ fontSize: 11, color: '#bfdbfe' }}>Rank #42 Worldwide</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Season 1 Rewards Pool Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            border: '1.5px solid #fde68a',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px 16px',
+            marginTop: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+              <Sparkles size={22} />
             </div>
             <div>
-              <div className="balance-amount">${user.balance.toFixed(4)}</div>
-              <div className="balance-usdt-approx">≈ {(user.balance * user.usdtRate).toFixed(2)} USDT</div>
-            </div>
-          </div>
-
-          {/* Pending Balance Row */}
-          <div className="pending-balance-box">
-            <div>
-              <div className="pending-title">Pending Balance</div>
-              <div className="pending-value">${user.pendingBalance.toFixed(4)}</div>
-            </div>
-            <Info size={18} color="#94a3b8" />
-          </div>
-
-          {/* Withdraw Green Action Button */}
-          <button className="btn-withdraw-big" onClick={() => openWithdrawModal('USDT (TRC20)', 5.00)}>
-            Withdraw
-          </button>
-
-          {/* Quick Stats Grid */}
-          <div className="section-header">
-            <span className="section-title">Quick Stats</span>
-          </div>
-
-          <div className="quick-stats-grid">
-            <div className="stat-card">
-              <div className="stat-icon earned">
-                <DollarSign size={18} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-label">Total Earned</span>
-                <span className="stat-number">${user.totalEarned.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon withdrawn">
-                <CreditCard size={18} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-label">Withdrawn</span>
-                <span className="stat-number">${user.withdrawn.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon transactions">
-                <TrendingUp size={18} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-label">Total Transactions</span>
-                <span className="stat-number">{user.totalTransactions}</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon pending">
-                <Clock size={18} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-label">Pending Requests</span>
-                <span className="stat-number">{user.pendingRequests}</span>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#92400e' }}>Season 1 Pilot Airdrop Pool 🚀</div>
+              <div style={{ fontSize: 11, color: '#b45309', marginTop: 2, lineHeight: 1.4 }}>
+                Play Airplane Combat & collect Duck Coins to climb the leaderboard! Top 1,000 pilots qualify for exclusive in-game badges and seasonal tier rewards.
               </div>
             </div>
           </div>
 
-          {/* Withdrawal Methods */}
-          <div className="section-header">
-            <span className="section-title">Withdrawal Methods</span>
+          {/* Leaderboard Rankings List */}
+          <div className="section-header" style={{ marginTop: 16 }}>
+            <span className="section-title">Top Ace Pilots</span>
           </div>
 
-          <div className="method-list">
-            <div className="method-item" onClick={() => openWithdrawModal('USDT (TRC20)', 0.10)}>
-              <div className="method-icon usdt">₮</div>
-              <div className="method-info">
-                <div className="method-name">USDT (TRC20)</div>
-                <div className="method-min">Min. $0.10</div>
+          <div className="leaderboard-list">
+            {leaderboard.map((pilot, idx) => (
+              <div key={pilot.id || idx} className="leaderboard-item">
+                <div className={`leaderboard-rank-badge ${idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : 'other'}`}>
+                  {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                </div>
+                <div className="leaderboard-user-info">
+                  <div className="leaderboard-username">
+                    {pilot.name || pilot.username}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                    {pilot.badge || 'Ace Pilot'}
+                  </div>
+                </div>
+                <div className="leaderboard-coins">
+                  <span>{pilot.balance?.toLocaleString()}</span>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>DUCK 🦆</span>
+                </div>
               </div>
-              <ChevronRight size={16} color="#94a3b8" />
-            </div>
-
-            <div className="method-item" onClick={() => openWithdrawModal('Binance Pay', 0.10)}>
-              <div className="method-icon binance">⬡</div>
-              <div className="method-info">
-                <div className="method-name">Binance Pay</div>
-                <div className="method-min">Min. $0.10</div>
-              </div>
-              <ChevronRight size={16} color="#94a3b8" />
-            </div>
-
-            <div className="method-item" onClick={() => openWithdrawModal('PayPal', 0.10)}>
-              <div className="method-icon paypal">P</div>
-              <div className="method-info">
-                <div className="method-name">PayPal</div>
-                <div className="method-min">Min. $0.10</div>
-              </div>
-              <ChevronRight size={16} color="#94a3b8" />
-            </div>
+            ))}
           </div>
         </div>
       )}
@@ -1375,11 +1302,11 @@ export default function App() {
         </button>
 
         <button 
-          className={`nav-tab-btn ${activeTab === 'wallet' ? 'active' : ''}`}
-          onClick={() => setActiveTab('wallet')}
+          className={`nav-tab-btn ${activeTab === 'leaderboard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('leaderboard')}
         >
-          <WalletIcon size={20} />
-          <span>Wallet</span>
+          <Trophy size={20} />
+          <span>Rank</span>
         </button>
       </div>
 
@@ -1391,7 +1318,7 @@ export default function App() {
               <X size={16} />
             </button>
 
-            <div className="modal-title">Watching Sponsor Ad</div>
+            <div className="modal-title">Watching Sponsor Clip</div>
 
             <div className="modal-ad-player">
               <span className="ad-countdown-pill">
@@ -1399,130 +1326,22 @@ export default function App() {
               </span>
               <div style={{ textAlign: 'center', padding: '0 20px' }}>
                 <Sparkles size={36} color="#f59e0b" style={{ marginBottom: 10 }} />
-                <div style={{ fontWeight: 800, fontSize: 16 }}>{adModal.task?.name} Video Ad</div>
+                <div style={{ fontWeight: 800, fontSize: 16 }}>{adModal.task?.name} Video Clip</div>
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                  Stay on this screen to claim your ${adModal.task?.reward.toFixed(2)} reward
+                  Stay on this screen to claim your +{adModal.task?.reward || 10} Duck Coins
                 </div>
               </div>
             </div>
 
             {adModal.countdown === 0 ? (
               <button className="btn-primary-action" onClick={handleFinishAd}>
-                Claim ${adModal.task?.reward.toFixed(2)} Reward
+                Claim +{adModal.task?.reward || 10} Duck Coins
               </button>
             ) : (
               <button className="btn-primary-action" disabled style={{ background: '#94a3b8' }}>
                 Reward available in {adModal.countdown}s...
               </button>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ======================= MODAL: WITHDRAW (Bottom Sheet Window) ======================= */}
-      {withdrawModal.open && (
-        <div className="modal-overlay" onClick={() => setWithdrawModal({ open: false, method: '', min: 0 })}>
-          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-drag-handle"></div>
-            <button className="modal-close-btn" onClick={() => setWithdrawModal({ open: false, method: '', min: 0 })}>
-              <X size={16} />
-            </button>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div className="modal-title">Withdraw Funds</div>
-              <div style={{ fontSize: 13, color: '#64748b' }}>
-                Select payout method and enter amount (Min: $0.10)
-              </div>
-            </div>
-
-            {/* Method Selector Pills */}
-            <div className="withdraw-method-grid">
-              <div 
-                className={`withdraw-method-card ${withdrawModal.method === 'USDT (TRC20)' ? 'selected' : ''}`}
-                onClick={() => setWithdrawModal(prev => ({ ...prev, method: 'USDT (TRC20)', min: 0.10 }))}
-              >
-                <div className="withdraw-method-card-icon" style={{ background: '#ecfdf5', color: '#10b981' }}>₮</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>USDT</div>
-                <div style={{ fontSize: 10, color: '#64748b' }}>TRC20</div>
-              </div>
-
-              <div 
-                className={`withdraw-method-card ${withdrawModal.method === 'Binance Pay' ? 'selected' : ''}`}
-                onClick={() => setWithdrawModal(prev => ({ ...prev, method: 'Binance Pay', min: 0.10 }))}
-              >
-                <div className="withdraw-method-card-icon" style={{ background: '#fffbeb', color: '#f59e0b' }}>⬡</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Binance</div>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Pay ID</div>
-              </div>
-
-              <div 
-                className={`withdraw-method-card ${withdrawModal.method === 'PayPal' ? 'selected' : ''}`}
-                onClick={() => setWithdrawModal(prev => ({ ...prev, method: 'PayPal', min: 0.10 }))}
-              >
-                <div className="withdraw-method-card-icon" style={{ background: '#eff6ff', color: '#1e6bf5' }}>P</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PayPal</div>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Email</div>
-              </div>
-            </div>
-
-            <form onSubmit={handleWithdrawSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="form-input-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className="form-label">Withdraw Amount ($)</label>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#1e6bf5', cursor: 'pointer' }} onClick={() => setWithdrawAmount(user.balance.toFixed(4))}>
-                    Max: ${user.balance.toFixed(4)}
-                  </span>
-                </div>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  min="0.10"
-                  className="form-input" 
-                  value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder="Min $0.10"
-                  required 
-                />
-                <span style={{ fontSize: 11, color: '#64748b' }}>
-                  Available Balance: ${user.balance.toFixed(4)} • Minimum: $0.10
-                </span>
-              </div>
-
-              <div className="form-input-group">
-                <label className="form-label">
-                  {withdrawModal.method === 'PayPal' ? 'PayPal Email' : `${withdrawModal.method} Address / Pay ID`}
-                </label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={withdrawAddress}
-                  onChange={(e) => setWithdrawAddress(e.target.value)}
-                  placeholder={
-                    withdrawModal.method === 'PayPal' ? 'example@gmail.com' : 
-                    withdrawModal.method === 'Binance Pay' ? 'Enter Binance Pay ID' : 
-                    'Enter TRC20 Wallet Address (T...)'
-                  }
-                  required 
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                className="btn-primary-action"
-                style={{ 
-                  background: '#10b981', 
-                  padding: '14px', 
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  fontSize: 15
-                }}
-              >
-                Submit Withdrawal
-              </button>
-            </form>
           </div>
         </div>
       )}
@@ -1567,8 +1386,8 @@ export default function App() {
                   <Gift size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>Daily Free Reward</div>
-                  <div style={{ fontSize: '11px', color: '#c2410c', fontWeight: 600 }}>Claim your daily $0.01</div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>Daily Check-in Reward</div>
+                  <div style={{ fontSize: '11px', color: '#c2410c', fontWeight: 600 }}>Claim your daily 50 Duck Coins</div>
                 </div>
               </div>
               <button
@@ -1585,7 +1404,7 @@ export default function App() {
                   cursor: user.dailyClaimedToday ? 'not-allowed' : 'pointer'
                 }}
               >
-                {user.dailyClaimedToday ? 'Claimed' : 'Claim $0.01'}
+                {user.dailyClaimedToday ? 'Claimed' : 'Claim 50 DUCK'}
               </button>
             </div>
 
@@ -1611,9 +1430,9 @@ export default function App() {
                 <div style={{ textAlign: 'center' }}>
                   <Award size={40} color="#10b981" />
                   <div style={{ fontWeight: 800, fontSize: 18, color: '#0f172a', marginTop: 6 }}>
-                    Won +${gameModal.result.toFixed(2)}!
+                    Won +{gameModal.result} Duck Coins!
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Credited directly to wallet</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Added directly to your balance</div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center' }}>

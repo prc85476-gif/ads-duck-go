@@ -1445,3 +1445,92 @@ body {
 .btn-primary-action:active {
   background: #1557d0;
 }
+
+/* ==================== LEADERBOARD STYLES ==================== */
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0 12px 0;
+}
+.leaderboard-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.leaderboard-hero-card {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.4);
+}
+.leaderboard-user-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.leaderboard-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid #60a5fa;
+  object-fit: cover;
+}
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.leaderboard-item {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease;
+}
+.leaderboard-rank-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.leaderboard-rank-badge.top-1 { background: #fef3c7; color: #b45309; }
+.leaderboard-rank-badge.top-2 { background: #f1f5f9; color: #475569; }
+.leaderboard-rank-badge.top-3 { background: #ffedd5; color: #9a3412; }
+.leaderboard-rank-badge.other { background: #f8fafc; color: #64748b; }
+.leaderboard-user-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.leaderboard-username {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.leaderboard-coins {
+  font-size: 14px;
+  font-weight: 800;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
