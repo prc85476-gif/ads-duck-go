@@ -251,12 +251,12 @@ app.get('/api/leaderboard', async (req, res) => {
 // Adsgram Webhook Reward Endpoint (Called by Adsgram server on reward complete)
 app.get('/api/adsgram/reward', async (req, res) => {
   const userId = req.query.userid || req.query.userId || "123456789";
-  const rewardAmount = parseFloat(req.query.reward) || 0.005;
+  const rewardAmount = parseFloat(req.query.reward) || 10;
 
   try {
     const user = await getOrCreateUser(userId);
-    const newBalance = +(user.balance + rewardAmount).toFixed(4);
-    const newTotalEarned = +(user.totalEarned + rewardAmount).toFixed(2);
+    const newBalance = +(user.balance + rewardAmount).toFixed(0);
+    const newTotalEarned = +(user.totalEarned + rewardAmount).toFixed(0);
     const newTasksCompleted = user.tasksCompleted + 1;
 
     await pool.query(`
@@ -278,7 +278,7 @@ app.get('/api/adsgram/reward', async (req, res) => {
       'act_' + Date.now(),
       userId,
       'Adsgram Video Ad Reward',
-      `You earned $${rewardAmount}`
+      `You earned +${rewardAmount} Duck Coins`
     ]);
 
     res.json({ ok: true, message: "Reward credited successfully" });
