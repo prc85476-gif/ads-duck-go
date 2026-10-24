@@ -40,42 +40,42 @@ bot.start(async (ctx) => {
   await sleep(600);
 
   const welcomeMessage = 
-`🚀 *Welcome to AdsDuckGo Game Bot!* 🦆🎮
+`🛩️ *Welcome to Duck Aviator 1945!* 🦆🎮
 
-👋 Hello, *${firstName}*!
-Ready to play, earn *Duck Coins* and climb the global leaderboard?
+👋 Greetings, Cadet *${firstName}*!
+Ready to take command of your fighter aircraft, dogfight hostile squadrons, and ascend the Worldwide Ace Leaderboard?
 
-✨ *Ways to Earn*:
-🛩️ *Airplane 1945 Combat* (Fly, defeat bosses & win Duck Coins!)
-📺 *Watch Sponsor Clips* (+10 Duck Coins per clip!)
-🎁 *Daily Check-in Bonus* (+50 Duck Coins every 24 hours!)
-👥 *Invite Friends* (+100 Duck Coins for each recruited pilot!)
+✨ *Flight Features*:
+✈️ *Air Combat Sorties* (3D arcade combat, defeat boss armadas & claim loot!)
+🎯 *Tactical Flight Operations* (Complete radar reconnaissance & combat briefings!)
+📦 *Daily Supply Drops* (Claim +50 Duck Coins every 24 hours!)
+👥 *Recruit Wingmen* (+100 Duck Coins for each squadron recruit!)
 
-🏆 *Global Leaderboard* - Collect Duck Coins & compete for the top ranks!
+🏆 *Worldwide Hall of Fame* - Compete with ace pilots across the globe!
 
-👇 *Click the button below to launch the Mini App!*`;
+👇 *Tap below to launch your fighter jet!*`;
 
   await ctx.reply(welcomeMessage, {
     parse_mode: 'Markdown',
     ...Markup.inlineKeyboard([
-      [Markup.button.webApp('🦆 Play & Open Mini App', WEBAPP_URL)],
-      [Markup.button.webApp('📺 Watch Sponsor Ads (+10 DUCK)', WEBAPP_URL)],
+      [Markup.button.webApp('🚀 Launch Fighter Jet (Play)', WEBAPP_URL)],
+      [Markup.button.webApp('🎯 Flight Operations Briefings', WEBAPP_URL)],
       [
         Markup.button.url('📢 Official Channel', 'https://t.me/adsduckgobot'),
-        Markup.button.callback('👥 Invite Friends', 'get_ref_link')
+        Markup.button.callback('👥 Recruit Wingmen', 'get_ref_link')
       ],
-      [Markup.button.callback('ℹ️ How It Works', 'how_it_works')]
+      [Markup.button.callback('ℹ️ Flight Manual', 'how_it_works')]
     ])
   });
 });
 
-bot.command(['ad', 'ads', 'watch'], async (ctx) => {
+bot.command(['play', 'game', 'flight'], async (ctx) => {
   await ctx.reply(
-    `📺 *Watch Sponsor Ads & Earn Duck Coins* 🦆\n\n🎯 *Reward*: +10 Duck Coins per video ad!\n\nTap below to open the Mini App and claim your coins instantly:`,
+    `🛩️ *Duck Aviator 1945 - Combat Hangar* 🦆\n\n🎯 Launch air combat sorties, defeat enemy squadrons & collect Duck Coins!\n\nTap below to enter the cockpit:`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.webApp('📺 Watch Ads in Mini App', WEBAPP_URL)]
+        [Markup.button.webApp('🚀 Launch Sortie', WEBAPP_URL)]
       ])
     }
   );

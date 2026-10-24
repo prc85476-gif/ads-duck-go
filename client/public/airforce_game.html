@@ -324,6 +324,14 @@
       <div><span style="color:#38bdf8">⭐ Items Collected:</span> <span id="resUsdtCount" style="color:#38bdf8">0</span></div>
       <div><span style="color:#ffd700">🦆 Duck Coins Won:</span> <span id="resEarnedUsdt" style="color:#ffd700; font-size:18px;">+25 DUCK</span></div>
     </div>
+    <div style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; width: 90%;">
+      <button id="btnReviveAd" onclick="requestAdRevive()" style="display:none; padding: 12px 14px; border-radius: 10px; border: 2px solid #38bdf8; background: linear-gradient(180deg, #0284c7, #0369a1); color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.5);">
+        ⚡ REVIVE JET & CONTINUE (Watch Briefing)
+      </button>
+      <button id="btnDoubleLoot" onclick="requestDoubleLoot()" style="padding: 12px 14px; border-radius: 10px; border: 2px solid #facc15; background: linear-gradient(180deg, #eab308, #ca8a04); color: #000; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4);">
+        🎬 2X FLIGHT REWARDS (Watch Briefing)
+      </button>
+    </div>
     <div class="btn-actions-row">
       <button class="btn-restart" onclick="resetGame()">PLAY AGAIN</button>
       <button class="btn-claim-exit" onclick="claimAndExit()">CLAIM DUCK COINS</button>
@@ -358,18 +366,56 @@ function confirmExit() {
   window.parent.postMessage({ type: 'AIRPLANE_GAME_EXIT' }, '*');
 }
 
+let currentEarnedCoins = 25;
+let lootDoubled = false;
+
 function claimAndExit() {
-  const earnedCoins = Math.max(15, Math.floor(score / 35) + usdtCoins * 2 + btcCoins * 5);
+  const finalCoins = lootDoubled ? currentEarnedCoins * 2 : currentEarnedCoins;
   window.parent.postMessage({ 
     type: 'AIRPLANE_GAME_CLAIM', 
-    earned: earnedCoins, 
-    coins: earnedCoins,
+    earned: finalCoins, 
+    coins: finalCoins,
     usdt: usdtCoins, 
     btc: btcCoins, 
     gold: goldCoins, 
     score: score 
   }, '*');
 }
+
+function requestDoubleLoot() {
+  if (lootDoubled) return;
+  window.parent.postMessage({ type: 'ADSGRAM_TRIGGER_AD', action: 'DOUBLE_LOOT' }, '*');
+}
+
+function requestAdRevive() {
+  window.parent.postMessage({ type: 'ADSGRAM_TRIGGER_AD', action: 'REVIVE_PLANE' }, '*');
+}
+
+window.addEventListener('message', (e) => {
+  if (!e.data) return;
+  if (e.data.type === 'ADSGRAM_AD_SUCCESS') {
+    if (e.data.action === 'REVIVE_PLANE') {
+      player.hp = 100;
+      gameRunning = true;
+      document.getElementById('overlay').style.display = 'none';
+      if (document.getElementById('hpFill')) {
+        document.getElementById('hpFill').style.width = '100%';
+      }
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    } else if (e.data.action === 'DOUBLE_LOOT') {
+      lootDoubled = true;
+      const btn = document.getElementById('btnDoubleLoot');
+      if (btn) {
+        btn.innerText = '✅ 2X FLIGHT REWARDS APPLIED!';
+        btn.style.opacity = '0.7';
+        btn.disabled = true;
+      }
+      const doubled = currentEarnedCoins * 2;
+      document.getElementById('resEarnedUsdt').innerText = `+${doubled} DUCK (2X!)`;
+    }
+  }
+});
 
 // Web Audio API Sound Engine (Zero external dependencies, instant loading)
 let audioCtx = null;
@@ -1202,10 +1248,20 @@ function endGame(victory) {
   title.innerText = victory ? 'VICTORY!' : 'MISSION OVER';
   title.style.color = victory ? '#f1c40f' : '#ff4d4d';
 
-  const earnedCoins = Math.max(15, Math.floor(score / 35) + usdtCoins * 2 + btcCoins * 5);
+  currentEarnedCoins = Math.max(15, Math.floor(score / 35) + usdtCoins * 2 + btcCoins * 5);
+  lootDoubled = false;
+  const btnRevive = document.getElementById('btnReviveAd');
+  const btnDouble = document.getElementById('btnDoubleLoot');
+  if (btnRevive) btnRevive.style.display = victory ? 'none' : 'block';
+  if (btnDouble) {
+    btnDouble.innerText = '🎬 2X FLIGHT REWARDS (Watch Briefing)';
+    btnDouble.disabled = false;
+    btnDouble.style.opacity = '1';
+  }
+
   document.getElementById('resScore').innerText = score;
   document.getElementById('resUsdtCount').innerText = `${usdtCoins + btcCoins} Items`;
-  document.getElementById('resEarnedUsdt').innerText = `+${earnedCoins} DUCK`;
+  document.getElementById('resEarnedUsdt').innerText = `+${currentEarnedCoins} DUCK`;
 }
 
 function resetGame() {
